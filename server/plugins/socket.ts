@@ -6,10 +6,10 @@ interface Player {
   name: string
 }
 
-console.log('📦 Socket plugin loaded')
+console.log('Socket Chalra')
 
 export default defineNitroPlugin(() => {
-  console.log('🚀 Nitro plugin running') // aandar aagaya mane nitro chalra
+  console.log('Nitro chalra') 
 
   const httpServer = createServer()
   const io = new Server(httpServer, {
@@ -17,7 +17,7 @@ export default defineNitroPlugin(() => {
   })
 
   httpServer.listen(4000, () => {
-    console.log('✅ Socket.IO server running on http://localhost:4000')
+    console.log('Socket.IO server running on http://localhost:4000')
   })
 
   let waitingPlayer: Player | null = null
@@ -53,7 +53,7 @@ export default defineNitroPlugin(() => {
 
     socket.on('disconnect', () => {
       console.log('❌ Client disconnected:', socket.id)
-      if (waitingPlayer?.id === socket.id) waitingPlayer = null // this checks if waitingPlayer is null or not , if not then waitingPlayer.id is accessed else the whole thing becomes undefine and does not cause an error(crazy type script things)
+      if (waitingPlayer?.id === socket.id) waitingPlayer = null 
     })
   })
 })
