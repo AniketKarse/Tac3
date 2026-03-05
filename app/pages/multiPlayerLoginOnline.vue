@@ -1,78 +1,9 @@
-<template>
-  <NuxtLayout>
-  <div>
-    <div class="center" v-if="!name">
-      <h1 >Player Name</h1>
-      <input v-model="playerName" placeholder="Player Name" />
-      <br>
-      <UButton class="rounded-full px-15" @click="joinGame">Join</UButton>
-    </div>
-
-<div v-else-if="waiting">Waiting for a worthy opponent (honorable mentions - NoobMaster69 , Knowy , XDXD)</div>
-
-<div v-else>
-  <h2 >Hello: {{ name }}</h2>
-
-  <div class="center">
-    <div v-if="!finalWin">
-      <h3>{{ currentTurnName }}'s Turn</h3>
-    </div>
-
-
-    <div v-if="finalWin">
-      <h3>{{ finalWinner }} is the Winner!!</h3>
-    </div>
-
-    <div class="row">
-      <button class="containerX" @click.stop="makeMove(0)" :disabled="!!cells[0]  || currentTurn !== socket.id || disableWinner">
-        {{ cells[0] }}
-      </button>
-      <button class="containerX" @click.stop="makeMove(1)" :disabled="!!cells[1]  || currentTurn !== socket.id || disableWinner">
-        {{ cells[1] }}
-      </button>
-      <button class="containerX" @click.stop="makeMove(2)" :disabled="!!cells[2]  || currentTurn !== socket.id || disableWinner">
-        {{ cells[2] }}
-      </button>
-    </div>
-    <div class="row">
-      <button class="containerX" @click.stop="makeMove(3)" :disabled="!!cells[3]  || currentTurn !== socket.id || disableWinner">
-        {{ cells[3] }}
-      </button>
-      <button class="containerX" @click.stop="makeMove(4)" :disabled="!!cells[4]  || currentTurn !== socket.id || disableWinner">
-        {{ cells[4] }}
-      </button>
-      <button class="containerX" @click.stop="makeMove(5)" :disabled="!!cells[5]  || currentTurn !== socket.id || disableWinner">
-        {{ cells[5] }}
-      </button>
-    </div>
-    <div class="row">
-      <button class="containerX" @click.stop="makeMove(6)" :disabled="!!cells[6]  || currentTurn !== socket.id || disableWinner">
-        {{ cells[6] }}
-      </button>
-      <button class="containerX" @click.stop="makeMove(7)" :disabled="!!cells[7]  || currentTurn !== socket.id || disableWinner">
-        {{ cells[7] }}
-      </button>
-      <button class="containerX" @click.stop="makeMove(8)" :disabled="!!cells[8]  || currentTurn !== socket.id || disableWinner">
-        {{ cells[8] }}
-      </button>
-    </div>
-
-    <div class="resetBtn">
-      <button class="audioWide" @click.stop="resetBoard()">Reset</button>
-    </div>
-  </div>
-
-
-</div>
-  </div>
-  </NuxtLayout>
-</template>
 
 <script setup lang="ts">
 import { io } from 'socket.io-client'
 import { ref, computed } from 'vue'
 
-const socket = io('http://localhost:4000')
+const socket = io();
 
 const cells = ref(Array(9).fill(''))
 
@@ -202,6 +133,77 @@ else if(Player2.value == '') Player2.value = currentTurnName.value
 watch(cells, updateWin, { deep: true });
 
 </script>
+
+<template>
+  <NuxtLayout>
+  <div>
+    <div class="center" v-if="!name">
+      <h1 >Player Name</h1>
+      <input v-model="playerName" placeholder="Player Name" />
+      <br>
+      <UButton class="rounded-full px-15" @click="joinGame">Join</UButton>
+    </div>
+
+<div v-else-if="waiting">Waiting for a worthy opponent (honorable mentions - NoobMaster69 , Knowy , XDXD)</div>
+
+<div v-else>
+  <h2 >Hello: {{ name }}</h2>
+
+  <div class="center">
+    <div v-if="!finalWin">
+      <h3>{{ currentTurnName }}'s Turn</h3>
+    </div>
+
+
+    <div v-if="finalWin">
+      <h3>{{ finalWinner }} is the Winner!!</h3>
+    </div>
+
+    <div class="row">
+      <button class="containerX" @click.stop="makeMove(0)" :disabled="!!cells[0]  || currentTurn !== socket.id || disableWinner">
+        {{ cells[0] }}
+      </button>
+      <button class="containerX" @click.stop="makeMove(1)" :disabled="!!cells[1]  || currentTurn !== socket.id || disableWinner">
+        {{ cells[1] }}
+      </button>
+      <button class="containerX" @click.stop="makeMove(2)" :disabled="!!cells[2]  || currentTurn !== socket.id || disableWinner">
+        {{ cells[2] }}
+      </button>
+    </div>
+    <div class="row">
+      <button class="containerX" @click.stop="makeMove(3)" :disabled="!!cells[3]  || currentTurn !== socket.id || disableWinner">
+        {{ cells[3] }}
+      </button>
+      <button class="containerX" @click.stop="makeMove(4)" :disabled="!!cells[4]  || currentTurn !== socket.id || disableWinner">
+        {{ cells[4] }}
+      </button>
+      <button class="containerX" @click.stop="makeMove(5)" :disabled="!!cells[5]  || currentTurn !== socket.id || disableWinner">
+        {{ cells[5] }}
+      </button>
+    </div>
+    <div class="row">
+      <button class="containerX" @click.stop="makeMove(6)" :disabled="!!cells[6]  || currentTurn !== socket.id || disableWinner">
+        {{ cells[6] }}
+      </button>
+      <button class="containerX" @click.stop="makeMove(7)" :disabled="!!cells[7]  || currentTurn !== socket.id || disableWinner">
+        {{ cells[7] }}
+      </button>
+      <button class="containerX" @click.stop="makeMove(8)" :disabled="!!cells[8]  || currentTurn !== socket.id || disableWinner">
+        {{ cells[8] }}
+      </button>
+    </div>
+
+    <div class="resetBtn">
+      <button class="audioWide" @click.stop="resetBoard()">Reset</button>
+    </div>
+  </div>
+
+
+</div>
+  </div>
+  </NuxtLayout>
+</template>
+
 
 <style>
 input:focus {
