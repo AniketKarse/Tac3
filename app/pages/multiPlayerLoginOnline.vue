@@ -47,7 +47,11 @@ function resetBoard() {
 }
 
 onMounted(() => {
-  socket = io()
+  socket = io();
+
+  window.addEventListener('beforeunload', () => {
+    if (socket) socket.disconnect();
+  })
 
   socket.on('connect', () => {
     myPlayerId.value = socket?.id || ''
@@ -111,6 +115,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   if (socket) socket.disconnect()
+  window.removeEventListener('beforeunload', () => {})
 })
 
 const updateWin = (newCells: string[]) => {
