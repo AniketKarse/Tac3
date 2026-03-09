@@ -1,136 +1,140 @@
 
 <script setup lang="ts">
-import { io } from 'socket.io-client'
-import { ref, computed } from 'vue'
+import { io, Socket } from 'socket.io-client'
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 
-const socket = io();
+let socket: Socket | null = null
 
-const cells = ref(Array(9).fill(''))
-
-
+const myPlayerId = ref<string>('')
+const cells = ref<string[]>(Array(9).fill(''))
 const players = ref<{ id: string; name: string }[]>([])
 const currentTurn = ref<string>('')
 
+const roomId = ref<string>('')
+const waiting = ref(false)
 
-// Help taken
+const Player1 = ref('')
+const Player2 = ref('')
+const name = ref('')
+const playerName = ref('')
+const toBeRemoved = ref<number[]>([])
+
+const turn = ref('X')
+const disableWinner = ref(false)
+const finalWin = ref('')
+const finalWinner = ref('')
+
 const currentTurnName = computed(() => {
   if (!currentTurn.value || players.value.length === 0) return 'Shhhh'
   const p = players.value.find(p => p.id === currentTurn.value)
   return p ? p.name : 'Shhhh'
 })
 
-const Player1 = ref('')
-const Player2 = ref('')
-
-
-const name = ref('')
-const playerName = ref('')
-
-const toBeRemoved = ref<number[]>([])
-
 function joinGame() {
-  if (!playerName.value) return
+  if (!playerName.value || !socket) return
   name.value = playerName.value
   socket.emit('join', name.value)
 }
 
 function makeMove(index: number) {
-  if (!roomId || cells.value[index]) return
-  socket.emit('move', { roomId, index })
+  if (!roomId.value || cells.value[index] || !socket) return
+  socket.emit('move', { roomId: roomId.value, index })
 }
 
 function resetBoard() {
-    const index = -1
-    socket.emit('move', { roomId, index })
-
+  if (!roomId.value || !socket) return
+  socket.emit('move', { roomId: roomId.value, index: -1 })
 }
-let roomId: string | null = null
-const waiting = ref(false)
 
-socket.on('waiting', () => {
-  waiting.value = true
+onMounted(() => {
+  socket = io()
+
+  socket.on('connect', () => {
+    myPlayerId.value = socket?.id || ''
+  })
+
+  socket.on('waiting', () => {
+    waiting.value = true
+  })
+
+  socket.on('game.start', (data: { roomId: string; players: { id: string; name: string }[]; turn: string }) => {
+    waiting.value = false
+    roomId.value = data.roomId
+    players.value = data.players
+    currentTurn.value = data.turn
+    
+    // Reset state for new games
+    cells.value = Array(9).fill('')
+    finalWin.value = ''
+    finalWinner.value = ''
+    disableWinner.value = false
+    toBeRemoved.value = []
+    Player1.value = ''
+    Player2.value = ''
+  })
+
+  socket.on('move', ({ playerId, index }: { playerId: string; index: number }) => {
+    if (index === -1) {
+      cells.value = Array(9).fill('')
+      currentTurn.value = players.value[0] ? players.value[0].id : ''
+      finalWin.value = ''
+      finalWinner.value = ''
+      disableWinner.value = false
+      toBeRemoved.value = []
+    } else {
+      const firstPlayerId = players.value[0]?.id
+      
+      const symbol = playerId === firstPlayerId ? 'X' : 'O'
+      cells.value[index] = symbol
+
+      const nextPlayer = players.value.find(p => p.id !== playerId)
+      currentTurn.value = nextPlayer ? nextPlayer.id : ''
+
+      toBeRemoved.value.push(index)
+      if (toBeRemoved.value.length > 6) {
+        const removeIndex = toBeRemoved.value.shift()
+        if (removeIndex !== undefined) {
+          cells.value[removeIndex] = ''
+        }
+      }
+    }
+  })
+
+  socket.on('opponent.left', (msg: string) => {
+    disableWinner.value = true
+    finalWin.value = 'W'
+    finalWinner.value = 'You (Opponent Fled)'
+    alert(msg);
+    navigateTo('/');
+  })
 })
 
-socket.on('game.start', (data: { roomId: string; players: { id: string; name: string }[]; turn: string }) => {
-  waiting.value = false
-  roomId = data.roomId
-  players.value = data.players
-  currentTurn.value = data.turn
-  cells.value = Array(9).fill('')
+onBeforeUnmount(() => {
+  if (socket) socket.disconnect()
 })
 
-socket.on('move', ({ playerId, index }: { playerId: string; index: number }) => {
-
-    if(index == -1){
-        cells.value = Array(9).fill('')
-        currentTurn.value = players.value[0] ? players.value[0].id : ''
-        finalWin.value = ''
-        finalWinner.value = ''
-        disableWinner.value = false
-        toBeRemoved.value = []
-    }
-    else {
-    const firstPlayerId = players.value[0]?.id
-    const symbol = ref()
-
-    if(playerId === firstPlayerId) symbol.value = 'X'
-    else symbol.value = 'O'
-
-    cells.value[index] = symbol
-    const nextPlayer = players.value.find(p => p.id !== playerId) // 2 hi log hai isliye can do
-    currentTurn.value = nextPlayer ? nextPlayer.id : ''
-
-    const remove = ref()
-    toBeRemoved.value.push(index)
-    if(toBeRemoved.value.length > 6) 
-    {
-        remove.value = toBeRemoved.value[0]
-        cells.value[remove.value] = ''
-        toBeRemoved.value.shift()
-    }
-
-
-    }
-
-  
-})
-
-// my Game logic
-const turn = ref('X')
-const disableWinner = ref(false)
-
-const finalWin = ref()
-const finalWinner = ref()
-
-const updateWin = (cells : any) => {
-
-if(Player1.value == '') Player1.value = currentTurnName.value
-else if(Player2.value == '') Player2.value = currentTurnName.value
+const updateWin = (newCells: string[]) => {
+  if (Player1.value === '') Player1.value = currentTurnName.value
+  else if (Player2.value === '') Player2.value = currentTurnName.value
 
   const winningPos: [number, number, number][] = [
-    [0, 1, 2],
-    [3, 4, 5],
-    [6, 7, 8],
-    [0, 3, 6],
-    [1, 4, 7],
-    [2, 5, 8],
-    [0, 4, 8],
-    [2, 4, 6],
+    [0, 1, 2], [3, 4, 5], [6, 7, 8],
+    [0, 3, 6], [1, 4, 7], [2, 5, 8],
+    [0, 4, 8], [2, 4, 6],
   ]
 
-    for (const [a, b, c] of winningPos) {
-    if (cells[a].value && cells[a].value === cells[b].value && cells[b].value === cells[c].value) {
+  for (const [a, b, c] of winningPos) {
+    if (newCells[a] && newCells[a] === newCells[b] && newCells[b] === newCells[c]) {
       disableWinner.value = true
-      finalWin.value = cells[a].value
+      finalWin.value = newCells[a]
     }
   }
-  if(finalWin.value == 'X') finalWinner.value = Player1.value
-  else if(finalWin.value == 'O')finalWinner.value = Player2.value
 
+  if (finalWin.value === 'X') finalWinner.value = Player1.value
+  else if (finalWin.value === 'O') finalWinner.value = Player2.value
 }
 
-
-watch(cells, updateWin, { deep: true });
+watch(cells, (newVal) => updateWin([...newVal]), { deep: true })
 
 </script>
 
@@ -160,36 +164,36 @@ watch(cells, updateWin, { deep: true });
     </div>
 
     <div class="row">
-      <button class="containerX" @click.stop="makeMove(0)" :disabled="!!cells[0]  || currentTurn !== socket.id || disableWinner">
-        {{ cells[0] }}
+      <button class="containerX" @click.stop="makeMove(0)" :disabled="!!cells[0] || currentTurn !== myPlayerId || disableWinner">
+  {{ cells[0] }}
       </button>
-      <button class="containerX" @click.stop="makeMove(1)" :disabled="!!cells[1]  || currentTurn !== socket.id || disableWinner">
-        {{ cells[1] }}
+      <button class="containerX" @click.stop="makeMove(1)" :disabled="!!cells[1] || currentTurn !== myPlayerId || disableWinner">
+  {{ cells[1] }}
       </button>
-      <button class="containerX" @click.stop="makeMove(2)" :disabled="!!cells[2]  || currentTurn !== socket.id || disableWinner">
-        {{ cells[2] }}
-      </button>
-    </div>
-    <div class="row">
-      <button class="containerX" @click.stop="makeMove(3)" :disabled="!!cells[3]  || currentTurn !== socket.id || disableWinner">
-        {{ cells[3] }}
-      </button>
-      <button class="containerX" @click.stop="makeMove(4)" :disabled="!!cells[4]  || currentTurn !== socket.id || disableWinner">
-        {{ cells[4] }}
-      </button>
-      <button class="containerX" @click.stop="makeMove(5)" :disabled="!!cells[5]  || currentTurn !== socket.id || disableWinner">
-        {{ cells[5] }}
+      <button class="containerX" @click.stop="makeMove(2)" :disabled="!!cells[2] || currentTurn !== myPlayerId || disableWinner">
+  {{ cells[2] }}
       </button>
     </div>
     <div class="row">
-      <button class="containerX" @click.stop="makeMove(6)" :disabled="!!cells[6]  || currentTurn !== socket.id || disableWinner">
-        {{ cells[6] }}
+      <button class="containerX" @click.stop="makeMove(3)" :disabled="!!cells[3] || currentTurn !== myPlayerId || disableWinner">
+  {{ cells[3] }}
       </button>
-      <button class="containerX" @click.stop="makeMove(7)" :disabled="!!cells[7]  || currentTurn !== socket.id || disableWinner">
-        {{ cells[7] }}
+      <button class="containerX" @click.stop="makeMove(4)" :disabled="!!cells[4] || currentTurn !== myPlayerId || disableWinner">
+  {{ cells[4] }}
       </button>
-      <button class="containerX" @click.stop="makeMove(8)" :disabled="!!cells[8]  || currentTurn !== socket.id || disableWinner">
-        {{ cells[8] }}
+      <button class="containerX" @click.stop="makeMove(5)" :disabled="!!cells[5] || currentTurn !== myPlayerId || disableWinner">
+  {{ cells[5] }}
+      </button>
+    </div>
+    <div class="row">
+      <button class="containerX" @click.stop="makeMove(6)" :disabled="!!cells[6] || currentTurn !== myPlayerId || disableWinner">
+  {{ cells[6] }}
+      </button>
+      <button class="containerX" @click.stop="makeMove(7)" :disabled="!!cells[7] || currentTurn !== myPlayerId || disableWinner">
+  {{ cells[7] }}
+      </button>
+      <button class="containerX" @click.stop="makeMove(8)" :disabled="!!cells[8] || currentTurn !== myPlayerId || disableWinner">
+  {{ cells[8] }}
       </button>
     </div>
 
